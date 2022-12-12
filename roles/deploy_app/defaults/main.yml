@@ -1,0 +1,4 @@
+---
+# app_host_group: "{{ app_server_group }}" 
+
+# jenkins_host_group: "{{ jenkins_server_group }}"

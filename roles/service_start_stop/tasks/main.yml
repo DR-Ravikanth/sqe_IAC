@@ -1,0 +1,12 @@
+---
+    # - name: Stop tomcat app service
+    #   become: true
+    #   command: "systemctl stop tomcat.service"
+    #   tags:
+    #     - start_stop_service 
+
+    - name: ReStart tomcat app service
+      become: true
+      command: "systemctl restart tomcat.service"
+      tags:
+        - start_stop_service 

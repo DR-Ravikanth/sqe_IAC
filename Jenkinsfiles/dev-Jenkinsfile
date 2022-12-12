@@ -1,0 +1,131 @@
+pipeline
+{
+	agent any
+	environment
+	{
+		apps_infra_env = "sqe_dev"
+		// build_server_name = "JenkinsServers"
+		// app_server_name = "AppServers"
+
+	}
+	tools
+	{
+		maven "maven_3.8.6"
+	}
+	stages
+	{
+		stage("SCM Checkout")
+		{
+			steps
+			{
+				git branch: 'feature_file', credentialsId: 'DR_GIT_KEY', url: 'https://github.com/devrabbititsol/RestAPI-Framework.git'
+				
+				dir('InfraRepo')
+				{
+					git branch: 'master', credentialsId: 'DR_GIT_KEY', url: 'https://github.com/devrabbititsol/sqe_iac.git'
+
+				}
+				
+			}
+		}
+		
+  		// stage("SonarQube analysis") 
+		// {
+		// 	environment 
+		// 	{
+		// 		scannerHome = tool 'SQS_4.7.0'
+		// 	}
+		// 	steps 
+		// 	{
+		// 		withSonarQubeEnv('sq_8.9.9') 
+		// 		{
+		// 			sh ''' 
+		// 			${scannerHome}/bin/sonar-scanner \
+        //         	-D sonar.projectKey=dev_sqe_module
+		// 			'''
+		// 		}
+		// 	}
+		// }
+
+    	// stage("Quality Gate Status Check")
+		// {
+		// 	steps
+		// 	{
+		// 		timeout(time: 1, unit: 'HOURS')
+		// 		{
+		// 			script
+		// 			{
+		// 				def qg = waitForQualityGate()
+		// 				if (qg.status != 'OK')
+		// 				{
+		// 				error "Pipeline aborted due to quality gate failure: ${qg.status}"
+		// 				}
+		// 			}
+									
+		// 		}
+
+		// 	}
+
+    	// } 
+
+		stage("Build")
+		{
+			steps
+			{
+				sh 'mvn clean install:install-file -Dfile=$WORKSPACE/lib/jira_sync.jar -DgroupId=jira-sync-latest -DartifactId=jirasync -Dversion=1.0 -Dpackaging=jar'
+				sh 'mvn package -DskipTests'
+
+			}
+		}
+
+
+		stage("Move Build to Artifact")
+		{
+            steps
+			{
+
+                ansiblePlaybook credentialsId: 'DR_AWS_EC2', 
+				disableHostKeyChecking: true,
+				extras: "-e apps_env=${env.apps_infra_env} ", 
+				installation: 'ansible', 
+				inventory: 'InfraRepo/inventories/dev.inv', 
+				limit: 'JenkinsServers',
+				playbook: 'InfraRepo/sqe_infra.yml',
+				tags: 'build_files'
+            }
+        }
+
+		stage("Backup ")
+		{
+			steps
+			{
+				ansiblePlaybook credentialsId: 'DR_DEV_INST', 
+				disableHostKeyChecking: true,
+				extras: "-e apps_env=${env.apps_infra_env}", 
+				installation: 'ansible', 
+				inventory: 'InfraRepo/inventories/dev.inv', 
+				limit: 'AppServers', 
+				playbook: 'InfraRepo/sqe_infra.yml',
+				tags: 'bk_app_files'
+			}
+			
+		}
+
+		stage("Deploy")
+		{
+			steps
+			{
+				ansiblePlaybook credentialsId: 'DR_DEV_INST', 
+				disableHostKeyChecking: true,
+				extras: "-e apps_env=${env.apps_infra_env}", 
+				installation: 'ansible', 
+				inventory: 'InfraRepo/inventories/dev.inv', 
+				limit: 'AppServers', 
+				playbook: 'InfraRepo/sqe_infra.yml',
+				tags: 'deploy_app_files, start_stop_service'
+			}
+			
+		}
+		
+	}
+}

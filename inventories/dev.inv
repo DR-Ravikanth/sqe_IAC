@@ -1,0 +1,5 @@
+[AppServers]
+50.79.154.171 ansible_user=dradmin
+
+[JenkinsServers]
+13.57.93.102 ansible_user=ubuntu

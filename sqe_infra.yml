@@ -1,0 +1,36 @@
+---
+- name: Code pull and build the application on jenkins
+  hosts: JenkinsServers
+  gather_facts: false
+  become: true
+  vars_files:
+    - "./config/{{ apps_env }}/extra_vars.yml"
+  
+  roles:
+    - role: build_app_files
+      tags:
+        - build_files
+
+- name: Deploy the application build and start the services
+  hosts: AppServers
+  gather_facts: false
+  become: true
+  vars_files:
+    - "./config/{{ apps_env }}/extra_vars.yml"
+  
+  roles:
+    - role: backup_app_tasks
+      tags:
+        - bk_app_files
+
+    - role: deploy_app
+      tags:
+        - deploy_app_files
+
+    - role: service_start_stop
+      tags:
+        - start_stop_service
+
+      # when: 
+      # - server_group in inventory_hostname
+      

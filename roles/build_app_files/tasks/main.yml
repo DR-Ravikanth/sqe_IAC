@@ -1,0 +1,52 @@
+---
+    - name: Check directory exists
+      stat:
+        path: "{{ appbuildpath }}/{{ app_env_name }}"
+      register: verify_appbuild_dir
+      tags:
+        - build_files
+
+    - name: echo if directory exists
+      debug:
+        msg: "the path: {{ appbuildpath }}/{{ app_env_name }} already exists"
+      when: 
+        - verify_appbuild_dir.stat.exists
+      tags:
+        - build_files
+
+    - name: Creating directory
+      file:
+        path: "{{ appbuildpath }}/{{ app_env_name }}"
+        state: directory
+        mode: 0777
+        group: root
+        owner: root
+      when:
+        - verify_appbuild_dir.stat.exists == false
+      tags:
+        - build_files
+
+    - name: Copy Build files from Jenkins workspace to Artifactory Folder
+      synchronize:
+        src: "{{ wpDir }}"
+        dest: "{{ appbuildDir }}"
+        dirs: yes
+        rsync_opts:
+               - "--exclude=InfraRepo"
+               - "--exclude=InfraRepo*"
+               - "--exclude=ssh*"
+      tags:
+        - build_files  
+
+    # - name: Archive existing Build directory to backup folder
+    #   archive:
+    #     path: "{{ appbuildDir }}"
+    #     dest: "{{ BKdir }}/{{ app_env_name }}_{{ date }}.tar.gz"
+    #     format: gz
+    #     force_archive: true
+    #     owner: root
+    #     group: root
+    #     mode: '0777'
+      
+    #   tags:
+    #     - archive_files  

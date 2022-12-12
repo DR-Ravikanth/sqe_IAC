@@ -1,0 +1,30 @@
+---
+    - name: Check file exists
+      stat:
+        path: "{{ existingwarfiles }}"
+      register: verify_build_file
+      tags:
+        - bk_app_files
+
+    - name: echo if file exists
+      debug:
+        msg: "the path: {{ existingwarfiles }} already exists"
+      when: 
+        - verify_build_file.stat.exists
+      tags:
+        - bk_app_files
+
+    - name: Archive existing application directory to backup folder
+      archive:
+        path: "{{ existingwarfiles }}"
+        dest: "{{ RemoteServerBKDir }}/{{ app_env_name }}_{{ date }}.tar.gz"
+        format: gz
+        force_archive: true
+        owner: root
+        group: root
+        mode: '0777'
+      when:
+        # - verify_build_file.stat.exists == true and verify_build_file.stat.exists == false
+        - verify_build_file.stat.exists == false
+      tags:
+        - bk_app_files

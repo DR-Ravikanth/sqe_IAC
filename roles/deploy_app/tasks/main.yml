@@ -1,0 +1,40 @@
+---
+    # - name: Copy InfrRepo files from Jenkins to Application Server
+    #   synchronize:
+    #     src: "{{ infraSrcDir }}"
+    #     dest: "{{ infraDesDir }}"
+    #     dirs: yes
+    #     recursive: yes       
+    #   tags:
+    #     - deploy_app_files 
+
+    - name: Copy Build files from Jenkins Build Dir to Application Server Dir
+      synchronize:
+        src: "{{ appbuildFile }}"
+        dest: "{{ RemoteServerDir }}"
+        # dirs: yes
+        rsync_opts:
+            - "--include=*.war"
+            - "--exclude=HelloWorld" 
+            - "--exclude=classes" 
+            - "--exclude=generated-sources" 
+            - "--exclude=maven-archiver"
+            - "--exclude=test-classes"
+        # recursive: yes
+      # with_fileglob: 
+      #   - "*.war"
+      tags:
+        - deploy_app_files 
+
+    - name: Set permission for folder
+      file:
+        path: "{{ item }}"
+        state: directory
+        recurse: yes
+        owner: tomcat
+        group: tomcat
+        mode: '0750'
+      with_items:
+        - "{{ RemoteServerDir }}"
+      tags:
+        - deploy_app_files

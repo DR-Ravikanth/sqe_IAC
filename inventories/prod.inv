@@ -1,0 +1,5 @@
+[AppServers]
+54.219.180.74 ansible_user=ubuntu
+
+[JenkinsServers]
+13.57.93.102 ansible_user=ubuntu
